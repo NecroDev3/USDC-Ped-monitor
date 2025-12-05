@@ -5,7 +5,9 @@ A real-time monitoring system for USDC/USD price stability using **Chainlink Dat
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.25-blue)
 ![Foundry](https://img.shields.io/badge/Foundry-Latest-orange)
 ![Chainlink](https://img.shields.io/badge/Chainlink-Automated-blue)
+![Envio](https://img.shields.io/badge/Envio-Indexed-purple)
 ![Tests](https://img.shields.io/badge/Tests-22%2F22%20Passing-green)
+![Status](https://img.shields.io/badge/Status-Complete-brightgreen)
 
 ---
 
@@ -24,6 +26,8 @@ This project monitors the USDC stablecoin's peg to the US Dollar by:
 - **Deployment Block**: 9766160
 - **Status**: ✅ Verified & Operational
 - **Chainlink Automation**: [View Upkeep](https://automation.chain.link/sepolia/96972436388670139943534231169140193743831575507702730398177253526836197323642)
+- **Envio Indexer**: [View Dashboard](https://envio.dev/app/necrodev3/usdc-ped-monitor)
+- **GraphQL Playground**: [Query Data](https://envio.dev/app/necrodev3/usdc-ped-monitor/01d056e/playground)
 
 ---
 
@@ -34,22 +38,28 @@ This project monitors the USDC stablecoin's peg to the US Dollar by:
 │                    USDC Peg Monitor System                  │
 └─────────────────────────────────────────────────────────────┘
                               │
-                              │
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
         ▼                     ▼                     ▼
 ┌──────────────┐    ┌──────────────────┐    ┌──────────────┐
 │  Chainlink   │    │   PegMonitor     │    │  Chainlink   │
 │  Price Feed  │───▶│   Smart Contract │◀───│  Automation  │
-│  (USDC/USD)  │    │                  │    │  (5 min)     │
+│  (USDC/USD)  │    │   (Sepolia)      │    │  (5 min)     │
 └──────────────┘    └──────────────────┘    └──────────────┘
                               │
                               │ Emits PriceUpdate Event
                               ▼
                     ┌──────────────────┐
                     │   Envio.dev      │
-                    │   Indexer        │
-                    │   (GraphQL API)  │
+                    │   Indexer        │───▶ 296+ Events Indexed
+                    │   (HyperSync)    │
+                    └──────────────────┘
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │   GraphQL API    │
+                    │   Playground     │───▶ Query Historical Data
+                    │   (Live)         │
                     └──────────────────┘
 ```
 
@@ -451,38 +461,6 @@ event PriceUpdate(
 
 ---
 
-## 🔧 Technical Details
-
-### Tech Stack
-
-- **Smart Contract**: Solidity 0.8.25
-- **Framework**: Foundry (forge, cast, anvil)
-- **Access Control**: OpenZeppelin Ownable v5.0.0
-- **Oracle**: Chainlink Price Feeds
-- **Automation**: Chainlink Automation (Keeper Network)
-- **Network**: Ethereum Sepolia Testnet
-- **Testing**: Foundry Test Suite (22 tests)
-
-### Dependencies
-
-```toml
-[dependencies]
-forge-std = "1.8.1"
-openzeppelin-contracts = "5.0.0"
-chainlink-brownie-contracts = "1.1.1"
-```
-
-### Contract Statistics
-
-- **Solidity Version**: 0.8.25
-- **License**: MIT
-- **Contract Size**: 131 lines
-- **Test Coverage**: 22 tests, 100% pass rate
-- **Gas Efficiency**: ~30,000 gas per heartbeat
-- **Security**: OpenZeppelin audited components
-
----
-
 ## 🧪 Testing
 
 ### Test Suite Overview
@@ -522,37 +500,131 @@ Test Categories:
 
 ---
 
-## 🎯 Next Steps: Envio.dev Indexer
+## 📡 Envio.dev Indexer
 
-The next phase involves setting up an indexer to make the event data easily queryable:
+The Envio indexer monitors and persists all `PriceUpdate` events, making the data easily queryable via GraphQL.
 
-### 1. **Install Envio CLI**
-```bash
-npm install -g envio
+### Live Indexer
+
+- **Dashboard**: [https://envio.dev/app/necrodev3/usdc-ped-monitor](https://envio.dev/app/necrodev3/usdc-ped-monitor)
+- **GraphQL Endpoint**: `https://indexer.dev.hyperindex.xyz/2203762/v1/graphql`
+- **Playground**: [https://envio.dev/app/necrodev3/usdc-ped-monitor/01d056e/playground](https://envio.dev/app/necrodev3/usdc-ped-monitor/01d056e/playground)
+- **Status**: ✅ Active & Synced (100%)
+- **Events Indexed**: 296+ PriceUpdate events
+
+### GraphQL Schema
+
+```graphql
+type PriceCheck {
+  id: ID!
+  timestamp: BigInt!
+  price: BigInt!
+  priceFormatted: String!
+  isPegged: Boolean!
+  blockNumber: BigInt!
+  transactionHash: String!
+}
+
+type PegStats {
+  id: ID!
+  totalChecks: BigInt!
+  peggedCount: BigInt!
+  unpeggedCount: BigInt!
+  lastCheckTimestamp: BigInt!
+  lastPrice: BigInt!
+  lastPriceFormatted: String!
+  lastIsPegged: Boolean!
+}
 ```
 
-### 2. **Create Indexer Project**
-Configure to monitor contract `0x80bf808902D4dAbEddBDd9EdaDfed3064Aa0B750` starting from block 9766160.
+### GraphQL Query: Last 10 Price Checks
 
-### 3. **Define GraphQL Schema**
-Create entities for `PriceCheck` and `PegStats`.
+This query fulfills the requirement to return the last 10 price check records:
 
-### 4. **Query Last 10 Price Checks**
 ```graphql
-query GetLast10Checks {
-  priceChecks(
-    orderBy: timestamp
-    orderDirection: desc
-    first: 10
+# Get Last 10 Price Check Records
+query GetLast10PriceChecks {
+  PriceCheck(
+    limit: 10
+    order_by: { timestamp: desc }
   ) {
+    id
     timestamp
+    price
     priceFormatted
     isPegged
+    blockNumber
+    transactionHash
   }
 }
 ```
 
-📚 **Full Guide**: See `ENVIO_INDEXER_SETUP.md` for complete instructions.
+### Example Response
+
+```json
+{
+  "data": {
+    "PriceCheck": [
+      {
+        "id": "11155111_9773594_62",
+        "timestamp": "1764927072",
+        "price": "99979969",
+        "priceFormatted": "0.99979969",
+        "isPegged": true,
+        "blockNumber": "9773594",
+        "transactionHash": "0xe441ce880bfa736b0729fb7e40f5a0277ca9ca9bdf95abe60e1215e8cbfaab30"
+      },
+      {
+        "id": "11155111_9773564_90",
+        "timestamp": "1764926712",
+        "price": "99979969",
+        "priceFormatted": "0.99979969",
+        "isPegged": true,
+        "blockNumber": "9773564",
+        "transactionHash": "0x460cfc4de4560c2aa55db8fbf968e3eddb6198bcc79a9df6d735933a2a629d03"
+      }
+      // ... 8 more records
+    ]
+  }
+}
+```
+
+### Additional Queries
+
+```graphql
+# Get Global Peg Statistics
+query GetPegStats {
+  PegStats {
+    id
+    totalChecks
+    peggedCount
+    unpeggedCount
+    lastPriceFormatted
+    lastIsPegged
+  }
+}
+
+# Get De-peg Events Only
+query GetDepegEvents {
+  PriceCheck(
+    where: { isPegged: { _eq: false } }
+    order_by: { timestamp: desc }
+  ) {
+    timestamp
+    priceFormatted
+    blockNumber
+  }
+}
+```
+
+### Using the API
+
+```bash
+# Query via curl
+curl -X POST https://indexer.dev.hyperindex.xyz/2203762/v1/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ PriceCheck(limit: 10, order_by: {timestamp: desc}) { priceFormatted isPegged blockNumber } }"}'
+```
 
 ---
 
@@ -560,7 +632,7 @@ query GetLast10Checks {
 
 ```
 USDC-Ped-monitor/
-├── peg-monitor/
+├── peg-monitor/                        # Smart Contract (Foundry)
 │   ├── src/
 │   │   └── PegMonitor.sol              # Main contract
 │   ├── script/
@@ -573,10 +645,18 @@ USDC-Ped-monitor/
 │   │   ├── forge-std/                  # Foundry std lib
 │   │   ├── openzeppelin-contracts/     # OpenZeppelin v5
 │   │   └── chainlink-brownie-contracts/ # Chainlink contracts
-│   ├── CHAINLINK_AUTOMATION_SETUP.md   # Automation guide
-│   ├── ENVIO_INDEXER_SETUP.md          # Indexer guide
-│   ├── CONTRACT_SUMMARY.md             # Technical details
-│   └── DEPLOYMENT.md                   # Deploy instructions
+│   └── CHAINLINK_AUTOMATION_SETUP.md   # Automation guide
+│
+├── indexer/                            # Envio Indexer
+│   ├── src/
+│   │   └── EventHandlers.ts            # Event handler logic
+│   ├── abis/
+│   │   └── PegMonitor-abi.json         # Contract ABI
+│   ├── config.yaml                     # Envio configuration
+│   ├── schema.graphql                  # GraphQL schema
+│   ├── queries.graphql                 # Example queries
+│   └── package.json                    # Dependencies
+│
 └── README.md                           # This file
 ```
 
@@ -597,6 +677,11 @@ USDC-Ped-monitor/
 - **Automation Upkeep**: [View Dashboard](https://automation.chain.link/sepolia/96972436388670139943534231169140193743831575507702730398177253526836197323642)
 - **Price Feed**: [USDC/USD Sepolia](https://sepolia.etherscan.io/address/0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E)
 
+### Envio Indexer
+- **Indexer Dashboard**: [https://envio.dev/app/necrodev3/usdc-ped-monitor](https://envio.dev/app/necrodev3/usdc-ped-monitor)
+- **GraphQL Playground**: [https://envio.dev/app/necrodev3/usdc-ped-monitor/01d056e/playground](https://envio.dev/app/necrodev3/usdc-ped-monitor/01d056e/playground)
+- **GraphQL Endpoint**: `https://indexer.dev.hyperindex.xyz/2203762/v1/graphql`
+
 ### Faucets
 - **Sepolia ETH**: [https://sepoliafaucet.com](https://sepoliafaucet.com)
 - **Sepolia LINK**: [https://faucets.chain.link/sepolia](https://faucets.chain.link/sepolia)
@@ -604,6 +689,7 @@ USDC-Ped-monitor/
 ### Documentation
 - [Chainlink Price Feeds](https://docs.chain.link/data-feeds/price-feeds/addresses)
 - [Chainlink Automation](https://docs.chain.link/chainlink-automation/introduction)
+- [Envio.dev Docs](https://docs.envio.dev/)
 - [Foundry Book](https://book.getfoundry.sh/)
 - [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/5.x/)
 
@@ -639,15 +725,30 @@ This is a **testnet project** for educational and monitoring purposes only. Alwa
 │ ✅ Verification        [COMPLETE]   │
 │ ✅ Chainlink Automation [ACTIVE]    │
 │ ✅ 5-Min Heartbeat     [RUNNING]    │
+│ ✅ Envio.dev Indexer   [ACTIVE]     │
+│ ✅ GraphQL API         [LIVE]       │
 │                                      │
-│ ⏳ Envio.dev Indexer   [TODO]       │
-│ ⏳ GraphQL API         [TODO]       │
+│      🎯 ALL REQUIREMENTS MET 🎯      │
 │                                      │
 └──────────────────────────────────────┘
 ```
 
-**Last Updated**: December 4, 2025
+### Requirements Checklist
+
+| Requirement | Status |
+|-------------|--------|
+| **1. Smart Contract (PegMonitor)** | |
+| ├─ Chainlink USDC/USD Data Feed integration | ✅ Complete |
+| ├─ `checkHeartbeat()` public function | ✅ Complete |
+| ├─ `PriceUpdate` event (timestamp, price, isPegged) | ✅ Complete |
+| └─ Chainlink Automation (5-min trigger) | ✅ Active |
+| **2. Indexer (Envio.dev)** | |
+| ├─ Create indexer for deployed contract | ✅ Complete |
+| ├─ Monitor & persist PriceUpdate events | ✅ 296+ events indexed |
+| └─ GraphQL query for last 10 records | ✅ Working |
+
+**Last Updated**: December 5, 2025
 
 ---
 
-Made with ❤️ using Foundry, Chainlink, and OpenZeppelin
+Made with ❤️ using Foundry, Chainlink, OpenZeppelin, and Envio
