@@ -1,0 +1,3 @@
+[submodule "peg-monitor/lib/forge-std"]
+	path = peg-monitor/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std

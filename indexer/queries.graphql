@@ -1,0 +1,124 @@
+# ============================================
+# REQUIRED QUERY: Last 10 Price Check Records
+# ============================================
+
+query GetLast10PriceChecks {
+  priceChecks(
+    orderBy: "timestamp"
+    orderDirection: "desc"
+    limit: 10
+  ) {
+    id
+    timestamp
+    price
+    priceFormatted
+    isPegged
+    blockNumber
+    transactionHash
+  }
+}
+
+# ============================================
+# Additional Useful Queries
+# ============================================
+
+# Get global statistics
+query GetGlobalStats {
+  pegStats(id: "global") {
+    totalChecks
+    peggedCount
+    unpeggedCount
+    lastCheckTimestamp
+    lastPrice
+    lastPriceFormatted
+    lastIsPegged
+  }
+}
+
+# Get only unpegged events (price deviations)
+query GetUnpeggedEvents {
+  priceChecks(
+    where: { isPegged: false }
+    orderBy: "timestamp"
+    orderDirection: "desc"
+    limit: 20
+  ) {
+    timestamp
+    priceFormatted
+    isPegged
+    transactionHash
+    blockNumber
+  }
+}
+
+# Get all price checks (with pagination)
+query GetAllPriceChecks($limit: Int!, $offset: Int!) {
+  priceChecks(
+    orderBy: "timestamp"
+    orderDirection: "desc"
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    timestamp
+    priceFormatted
+    isPegged
+    blockNumber
+    transactionHash
+  }
+}
+
+# Get price checks after a specific timestamp
+query GetRecentPriceChecks($afterTimestamp: BigInt!) {
+  priceChecks(
+    where: { timestamp_gt: $afterTimestamp }
+    orderBy: "timestamp"
+    orderDirection: "asc"
+  ) {
+    timestamp
+    priceFormatted
+    isPegged
+    blockNumber
+  }
+}
+
+# Get latest price check
+query GetLatestPriceCheck {
+  priceChecks(
+    orderBy: "timestamp"
+    orderDirection: "desc"
+    limit: 1
+  ) {
+    timestamp
+    priceFormatted
+    isPegged
+    blockNumber
+    transactionHash
+  }
+}
+
+# Get price check by ID
+query GetPriceCheckById($id: ID!) {
+  priceCheck(id: $id) {
+    id
+    timestamp
+    price
+    priceFormatted
+    isPegged
+    blockNumber
+    transactionHash
+  }
+}
+
+# Get price check by transaction hash
+query GetPriceCheckByTxHash($txHash: String!) {
+  priceChecks(
+    where: { transactionHash: $txHash }
+  ) {
+    id
+    timestamp
+    priceFormatted
+    isPegged
+    blockNumber
+  }
+}

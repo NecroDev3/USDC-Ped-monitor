@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: usdc-peg-monitor
+field_selection:
+  transaction_fields:
+    - hash
+networks:
+  - id: 11155111
+    start_block: 9766160
+    rpc_config:
+      url: https://eth-sepolia.g.alchemy.com/v2/vSosGKezA8XHEi3c_9cI8bEYVs8aQKrR
+    contracts:
+      - name: PegMonitor
+        abi_file_path: abis/PegMonitor-abi.json
+        address:
+          - 0x80bf808902D4dAbEddBDd9EdaDfed3064Aa0B750
+        handler: src/EventHandlers.ts
+        events:
+          - event: PriceUpdate(uint256 indexed timestamp, int256 price, bool isPegged)

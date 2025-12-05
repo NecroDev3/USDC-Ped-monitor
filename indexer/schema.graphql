@@ -1,0 +1,22 @@
+# USDC Peg Monitor Schema
+
+type PriceCheck {
+  id: ID!
+  timestamp: BigInt!
+  price: BigInt!
+  priceFormatted: String!
+  isPegged: Boolean!
+  blockNumber: BigInt!
+  transactionHash: String!
+}
+
+type PegStats {
+  id: ID!
+  totalChecks: BigInt!
+  peggedCount: BigInt!
+  unpeggedCount: BigInt!
+  lastCheckTimestamp: BigInt!
+  lastPrice: BigInt!
+  lastPriceFormatted: String!
+  lastIsPegged: Boolean!
+}
